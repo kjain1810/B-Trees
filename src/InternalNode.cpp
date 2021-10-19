@@ -29,7 +29,54 @@ TreePtr InternalNode::single_child_ptr() {
 //TODO: InternalNode::insert_key to be implemented
 TreePtr InternalNode::insert_key(const Key &key, const RecordPtr &record_ptr) {
     TreePtr new_tree_ptr = NULL_PTR;
-    cout << "InternalNode::insert_key not implemented" << endl;
+    TreePtr child_ptr; // the child pointer where the key has to go
+    int child_idx;
+    // Finding the child pointer
+    child_ptr = this->tree_pointers.back();
+    child_idx = this->tree_pointers.size() - 1;
+    for(int a = 0; a < this->keys.size(); a++)
+        if(this->keys[a] >= key)
+        {
+            child_ptr = this->tree_pointers[a];        
+            child_idx = a;
+            break;
+        }
+    // Inserting the key into the child pointer
+    TreeNode *child_node = this->tree_node_factory(child_ptr);
+    TreePtr child_ret = child_node->insert_key(key, record_ptr);
+    if(child_ret != NULL_PTR)
+    {
+        TreeNode *new_child_node = this->tree_node_factory(child_ret);
+        this->keys.push_back(new_child_node->max());
+        this->tree_pointers.push_back(child_ret);
+        for(int a = this->keys.size() - 1; a >= 1; a--)
+            if(this->keys[a] < this->keys[a - 1])
+            {
+                swap(this->keys[a], this->keys[a - 1]);
+                swap(this->tree_pointers[a], this->tree_pointers[a + 1]);
+            }
+        this->size++;
+        if(this->size > FANOUT)
+        {
+            InternalNode *new_internal_node = new InternalNode();
+            while(this->size > (FANOUT + 1) / 2)
+            {
+                new_internal_node->keys.push_back(this->keys.back());
+                new_internal_node->tree_pointers.push_back(this->tree_pointers.back());
+                this->keys.pop_back();
+                this->tree_pointers.pop_back();
+                this->size--;
+                new_internal_node->size++;
+            }
+            for(int a = 0; a < new_internal_node->tree_pointers.size() / 2; a++)
+                swap(new_internal_node->tree_pointers[a], new_internal_node->tree_pointers[new_internal_node->tree_pointers.size() - a - 1]);
+            for(int a = 0; a < new_internal_node->keys.size() / 2; a++)
+                swap(new_internal_node->keys[a], new_internal_node->keys[new_internal_node->keys.size() - a - 1]);
+            new_internal_node->keys.pop_back();
+            new_internal_node->dump();
+            new_tree_ptr = new_internal_node->tree_ptr;
+        }
+    }
     this->dump();
     return new_tree_ptr;
 }
