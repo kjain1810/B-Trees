@@ -3,3 +3,6 @@
 .vault-stats
 .vscode
 cmake-build-debug
+build/
+data/*.md
+temp/*
