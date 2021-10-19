@@ -47,7 +47,11 @@ TreePtr LeafNode::insert_key(const Key &key, const RecordPtr &record_ptr) {
 //key is deleted from leaf if exists
 //TODO: LeafNode::delete_key to be implemented
 void LeafNode::delete_key(const Key &key) {
-    cout << "LeafNode::delete_key not implemented" << endl;
+    if(this->data_pointers.find(key) != this->data_pointers.end())
+    {
+        this->data_pointers.erase(key);
+        this->size--;
+    }
     this->dump();
 }
 
