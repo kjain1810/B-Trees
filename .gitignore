@@ -7,3 +7,4 @@ build/
 data/*.md
 temp/*
 data/range*.txt
+data/insert*

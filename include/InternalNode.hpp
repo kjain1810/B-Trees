@@ -38,6 +38,16 @@ public:
     //I/O
     ostream& write(ostream& os) const override;
     istream& read(istream& is) override;
+
+    //delete helper functions
+    void leafLeftRedistribute(int);
+    void leafLeftMerge(int);
+    void leafRightRedistribute(int);
+    void leafRightMerge(int);
+    void internalLeftRedistribute(int);
+    void internalLeftMerge(int);
+    void internalRightRedistribute(int);
+    void internalRightMerge(int);
 };
 
 

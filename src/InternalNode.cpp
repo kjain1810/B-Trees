@@ -1,4 +1,7 @@
 #include "InternalNode.hpp"
+#include "LeafNode.hpp"
+#include "RecordPtr.hpp"
+#include <map>
 
 //creates internal node pointed to by tree_ptr or creates a new one
 InternalNode::InternalNode(const TreePtr &tree_ptr) : TreeNode(INTERNAL, tree_ptr) {
@@ -34,20 +37,33 @@ TreePtr InternalNode::insert_key(const Key &key, const RecordPtr &record_ptr) {
     // Finding the child pointer
     child_ptr = this->tree_pointers.back();
     child_idx = this->tree_pointers.size() - 1;
-    for(int a = 0; a < this->keys.size(); a++)
-        if(this->keys[a] >= key)
-        {
-            child_ptr = this->tree_pointers[a];        
-            child_idx = a;
-            break;
-        }
+    if(key <= this->keys[0])
+    {
+        child_ptr = this->tree_pointers[0];
+        child_idx = 0;
+    }
+    else if(key > this->keys.back())
+    {
+        child_ptr = this->tree_pointers.back();
+        child_idx = this->tree_pointers.size() - 1;
+    }
+    else 
+    {
+        for(int a = 0; a < this->keys.size() - 1; a++)
+            if(key > this->keys[a] && key <= this->keys[a + 1])
+            {
+                child_ptr = this->tree_pointers[a + 1];
+                child_idx = a + 1;
+            }
+    }
     // Inserting the key into the child pointer
     TreeNode *child_node = this->tree_node_factory(child_ptr);
     TreePtr child_ret = child_node->insert_key(key, record_ptr);
     if(child_ret != NULL_PTR)
     {
+        cout << "here while inserting " << key << "\n";
         TreeNode *new_child_node = this->tree_node_factory(child_ret);
-        this->keys.push_back(new_child_node->max());
+        this->keys.push_back(child_node->max());
         this->tree_pointers.push_back(child_ret);
         for(int a = this->keys.size() - 1; a >= 1; a--)
             if(this->keys[a] < this->keys[a - 1])
@@ -85,8 +101,327 @@ TreePtr InternalNode::insert_key(const Key &key, const RecordPtr &record_ptr) {
 //TODO: InternalNode::delete_key to be implemented
 void InternalNode::delete_key(const Key &key) {
     TreePtr new_tree_ptr = NULL_PTR;
-    cout << "InternalNode::delete_key not implemented" << endl;
+    TreePtr child_ptr; // the child pointer where the key has to go
+    int child_idx;
+    // Finding the child pointer
+    child_ptr = this->tree_pointers.back();
+    child_idx = this->tree_pointers.size() - 1;
+    if(key <= this->keys[0])
+    {
+        child_ptr = this->tree_pointers[0];
+        child_idx = 0;
+    }
+    else if(key > this->keys.back())
+    {
+        child_ptr = this->tree_pointers.back();
+        child_idx = this->tree_pointers.size() - 1;
+    }
+    else 
+    {
+        for(int a = 0; a < this->keys.size() - 1; a++)
+            if(key > this->keys[a] && key <= this->keys[a + 1])
+            {
+                child_ptr = this->tree_pointers[a + 1];
+                child_idx = a + 1;
+            }
+    }
+    // DELETING
+    TreeNode *child_node = this->tree_node_factory(child_ptr);
+    child_node->delete_key(key);
+    // CHECK IF UNDERFLOW
+    if(child_node->node_type == INTERNAL)
+    {
+        // Child is internal node
+        InternalNode *child = new InternalNode(child_ptr);
+        if(child->size < (FANOUT + 1) / 2)
+        {
+            // left redistribution
+            bool leftRedistribution = false;
+            InternalNode *prevChild, *nextChild;
+            if(child_idx == 0);
+            else 
+            {
+                prevChild = new InternalNode(this->tree_pointers[child_idx - 1]);
+                if(prevChild->size + child->size >= 2 * ((FANOUT + 1) / 2))
+                    leftRedistribution = true;
+            }
+            // left merge
+            bool leftMerge = false;
+            if(child_idx == 0);
+            else
+            {
+                prevChild = new InternalNode(this->tree_pointers[child_idx - 1]);
+                if(prevChild->size + child->size <= FANOUT)
+                    leftMerge = true;
+            }
+            // right redistribute
+            bool rightRedistribution = false;
+            if(child_idx == this->tree_pointers.size() - 1);
+            else
+            {
+                nextChild = new InternalNode(this->tree_pointers[child_idx + 1]);
+                if(nextChild->size + child->size >= 2 * ((FANOUT + 1) / 2))
+                    rightRedistribution = true;
+            }
+            // right merge
+            bool rightMerge = false;
+            if(child_idx == this->tree_pointers.size() - 1);
+            else
+            {
+                nextChild = new InternalNode(this->tree_pointers[child_idx + 1]);
+                if(nextChild->size + child->size <= FANOUT)
+                    rightMerge = true;
+            }
+            if(leftRedistribution)
+                this->internalLeftRedistribute(child_idx);
+            else if(leftMerge)
+                this->internalLeftMerge(child_idx);
+            else if(rightRedistribution)
+                this->internalRightRedistribute(child_idx);
+            else if (rightMerge)
+                this->internalRightMerge(child_idx);
+        }
+    }
+    else 
+    {
+        // Child is leaf node
+        LeafNode *child = new LeafNode(child_ptr);
+        if(child->size < (FANOUT + 1) / 2)
+        {
+            // left redistribute
+            bool leftRedistribution = false;
+            LeafNode *prevChild, *nextChild;
+            if(child_idx == 0);
+            else
+            {
+                prevChild = new LeafNode(this->tree_pointers[child_idx - 1]);
+                if(prevChild->size + child->size >= 2 * ((FANOUT + 1) / 2))
+                    leftRedistribution = true;
+            }
+            // left merge
+            bool leftMerge = false;
+            if(child_idx == 0);
+            else
+            {
+                prevChild = new LeafNode(this->tree_pointers[child_idx - 1]);
+                if(prevChild->size + child->size <= FANOUT)
+                    leftMerge = true;
+            }
+            // right redistribute
+            bool rightRedistribution = false;
+            if(child_idx == this->tree_pointers.size() - 1);
+            else
+            {
+                nextChild = new LeafNode(this->tree_pointers[child_idx + 1]);
+                if(nextChild->size + child->size >= 2 * ((FANOUT + 1) / 2))
+                    rightRedistribution = true;
+            }
+            // right merge
+            bool rightMerge = false;
+            if(child_idx == this->tree_pointers.size() - 1);
+            else
+            {
+                nextChild = new LeafNode(this->tree_pointers[child_idx + 1]);
+                if(nextChild->size + child->size <= FANOUT)
+                    rightMerge = true;
+            }
+            if(leftRedistribution)
+                this->leafLeftRedistribute(child_idx);
+            else if(leftMerge)
+                this->leafLeftMerge(child_idx);
+            else if(rightRedistribution)
+                this->leafRightRedistribute(child_idx);
+            else if (rightMerge)
+                this->leafRightMerge(child_idx);
+        }
+    }
     this->dump();
+    this->write(cout);
+}
+
+void InternalNode::leafLeftRedistribute(int idx)
+{
+    LeafNode *child = new LeafNode(this->tree_pointers[idx]);
+    LeafNode *prevChild = new LeafNode(this->tree_pointers[idx - 1]);
+    while(child->size < (FANOUT + 1) / 2)
+    {
+        RecordPtr here = prevChild->data_pointers.rbegin()->second;
+        Key key = prevChild->data_pointers.rbegin()->first;
+        prevChild->delete_key(key);
+        child->insert_key(key, here);
+        this->keys[idx - 1] = prevChild->max();
+    }
+    child->dump();
+    prevChild->dump();
+}
+
+void InternalNode::internalLeftRedistribute(int idx)
+{
+    InternalNode *child = new InternalNode(this->tree_pointers[idx]);
+    InternalNode *prevChild = new InternalNode(this->tree_pointers[idx - 1]);
+    while(child->size < (FANOUT + 1) / 2)
+    {
+        TreePtr here = prevChild->tree_pointers.back();
+        prevChild->tree_pointers.pop_back();
+        prevChild->keys.pop_back();
+        child->tree_pointers.push_back(here);
+        TreeNode *grandChild = this->tree_node_factory(here);
+        Key key = grandChild->max();
+        child->keys.push_back(key);
+        for(int a = child->keys.size() - 1; a >= 1; a--)
+            swap(child->keys[a], child->keys[a - 1]);
+        for(int a = child->tree_pointers.size() - 1; a >= 1; a--)
+            swap(child->tree_pointers[a], child->tree_pointers[a - 1]);
+        this->keys[idx - 1] = prevChild->max();
+        child->size++;
+        prevChild->size--;
+    }
+    child->dump();
+    prevChild->dump();
+}
+
+void InternalNode::leafLeftMerge(int idx)
+{
+    LeafNode *child = new LeafNode(this->tree_pointers[idx]);
+    TreePtr todel = this->tree_pointers[idx];
+    LeafNode *prevChild = new LeafNode(this->tree_pointers[idx - 1]);
+    while(child->size)
+    {
+        RecordPtr here = child->data_pointers.rbegin()->second;
+        Key key = child->data_pointers.rbegin()->first;
+        child->delete_key(key);
+        prevChild->insert_key(key, here);
+    }
+    for(int a = idx; a < this->tree_pointers.size() - 1; a++)
+        swap(this->tree_pointers[a], this->tree_pointers[a + 1]);
+    cout << "Popping - " << this->tree_pointers.back() << "\n";
+    this->tree_pointers.pop_back();
+    for(int a = idx - 1; a < this->keys.size() - 1; a++)
+        swap(this->keys[a], this->keys[a + 1]);
+    this->keys.pop_back();
+    this->size--;
+    child->dump();
+    prevChild->dump();
+    delete_file(todel);
+}
+
+void InternalNode::internalLeftMerge(int idx)
+{
+    InternalNode *child = new InternalNode(this->tree_pointers[idx]);
+    TreePtr todel = this->tree_pointers[idx];
+    InternalNode *prevChild = new InternalNode(this->tree_pointers[idx - 1]);
+
+    TreeNode *grandChild = this->tree_node_factory(prevChild->tree_pointers.back());
+    prevChild->keys.push_back(grandChild->max());
+    for(int a = 0; a < child->tree_pointers.size(); a++)
+    {
+        prevChild->tree_pointers.push_back(child->tree_pointers[a]);
+        prevChild->size++;
+    }
+    for(int a = 0; a < child->keys.size(); a++)
+        prevChild->keys.push_back(child->keys[a]);
+    while(child->keys.size())
+        child->keys.pop_back();
+    while(child->tree_pointers.size())
+        child->tree_pointers.pop_back();
+    // remove child from this
+    for(int a = idx; a < this->tree_pointers.size() - 1; a++)
+        swap(this->tree_pointers[a], this->tree_pointers[a + 1]);
+    this->tree_pointers.pop_back();
+    for(int a = idx - 1; a < this->keys.size() - 1; a++)
+        swap(this->keys[a], this->keys[a + 1]);
+    this->keys.pop_back();
+    this->size--;
+    child->dump();
+    prevChild->dump();
+    delete_file(todel);
+}
+
+void InternalNode::leafRightRedistribute(int idx)
+{
+    LeafNode *child = new LeafNode(this->tree_pointers[idx]);
+    LeafNode *nextChild = new LeafNode(this->tree_pointers[idx + 1]);
+    while(child->size < (FANOUT + 1) / 2)
+    {
+        RecordPtr here = nextChild->data_pointers.begin()->second;
+        Key key = nextChild->data_pointers.begin()->first;
+        nextChild->delete_key(key);
+        child->insert_key(key, here);
+        this->keys[idx] = child->max();
+    }
+    child->dump();
+    nextChild->dump();
+}
+
+void InternalNode::internalRightRedistribute(int idx)
+{
+    InternalNode *child = new InternalNode(this->tree_pointers[idx]);
+    InternalNode *nextChild = new InternalNode(this->tree_pointers[idx + 1]);
+    while(child->size < (FANOUT + 1) / 2)
+    {
+        TreeNode *grandChild = this->tree_node_factory(child->tree_pointers.back());
+        child->keys.push_back(grandChild->max());
+        child->tree_pointers.push_back(nextChild->tree_pointers[0]);
+        for(int a = 0; a < nextChild->tree_pointers.size() - 1; a++)
+            swap(nextChild->tree_pointers[a], nextChild->tree_pointers[a + 1]);
+        nextChild->tree_pointers.pop_back();
+        for(int a = 0; a < nextChild->keys.size() - 1; a++)
+            swap(nextChild->keys[a], nextChild->keys[a + 1]);
+        nextChild->keys.pop_back();
+    }
+    child->dump();
+    nextChild->dump();
+}
+
+void InternalNode::leafRightMerge(int idx)
+{
+    LeafNode *child = new LeafNode(this->tree_pointers[idx]);
+    LeafNode *nextChild = new LeafNode(this->tree_pointers[idx + 1]);
+    while(child->size)
+    {
+        RecordPtr here = child->data_pointers.rbegin()->second;
+        Key key = child->data_pointers.rbegin()->first;
+        child->delete_key(key);
+        nextChild->insert_key(key, here); 
+    }
+    for(int a = idx; a < this->tree_pointers.size() - 1; a++)
+        swap(this->tree_pointers[a], this->tree_pointers[a + 1]);
+    this->tree_pointers.pop_back();
+    for(int a = idx; a < this->keys.size() - 1; a++)
+        swap(this->keys[a], this->keys[a + 1]);
+    this->keys.pop_back();
+    this->size--;
+    child->dump();
+    nextChild->dump();
+}
+
+void InternalNode::internalRightMerge(int idx)
+{
+    InternalNode *child = new InternalNode(this->tree_pointers[idx]);
+    InternalNode *nextChild = new InternalNode(this->tree_pointers[idx + 1]);
+    TreePtr todel = this->tree_pointers[idx + 1];
+
+    for(int a = 0; a < nextChild->tree_pointers.size(); a++)
+    {
+        TreeNode *grandChild = this->tree_node_factory(child->tree_pointers.back());
+        child->keys.push_back(grandChild->max());
+        child->tree_pointers.push_back(nextChild->tree_pointers[a]);
+        child->size++;
+    }
+    while(nextChild->tree_pointers.size())
+        nextChild->tree_pointers.pop_back();
+    while(nextChild->keys.size())
+        nextChild->keys.pop_back();
+    for(int a = idx; a < this->keys.size() - 1; a++)
+        swap(this->keys[a], this->keys[a + 1]);
+    this->keys.pop_back();
+    for(int a = idx + 1; a < this->tree_pointers.size() - 1; a++)
+        swap(this->tree_pointers[a], this->tree_pointers[a + 1]);
+    this->tree_pointers.pop_back();
+    this->size--;
+    child->dump();
+    nextChild->dump();
+    delete_file(todel);
 }
 
 //runs range query on subtree rooted at this node
