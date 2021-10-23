@@ -61,7 +61,6 @@ TreePtr InternalNode::insert_key(const Key &key, const RecordPtr &record_ptr) {
     TreePtr child_ret = child_node->insert_key(key, record_ptr);
     if(child_ret != NULL_PTR)
     {
-        cout << "here while inserting " << key << "\n";
         TreeNode *new_child_node = this->tree_node_factory(child_ret);
         this->keys.push_back(child_node->max());
         this->tree_pointers.push_back(child_ret);
@@ -294,7 +293,6 @@ void InternalNode::leafLeftMerge(int idx)
     }
     for(int a = idx; a < this->tree_pointers.size() - 1; a++)
         swap(this->tree_pointers[a], this->tree_pointers[a + 1]);
-    cout << "Popping - " << this->tree_pointers.back() << "\n";
     this->tree_pointers.pop_back();
     for(int a = idx - 1; a < this->keys.size() - 1; a++)
         swap(this->keys[a], this->keys[a + 1]);

@@ -20,7 +20,6 @@ Key LeafNode::max() {
 //TODO: LeafNode::insert_key to be implemented
 TreePtr LeafNode::insert_key(const Key &key, const RecordPtr &record_ptr) {
     TreePtr new_leaf = NULL_PTR; //if leaf is split, new_leaf = ptr to new split node ptr
-    // cout << "LeafNode::insert_key not implemented" << endl;
     this->data_pointers.insert({key, record_ptr});
     this->size++;
     if(this->size > FANOUT)
@@ -47,10 +46,8 @@ TreePtr LeafNode::insert_key(const Key &key, const RecordPtr &record_ptr) {
 //key is deleted from leaf if exists
 //TODO: LeafNode::delete_key to be implemented
 void LeafNode::delete_key(const Key &key) {
-    cout << "DELETING " << key << " FROM " << this->tree_ptr << "\n";
     if(this->data_pointers.find(key) != this->data_pointers.end())
     {
-        cout << "FOUND AND DELETED!\n";
         this->data_pointers.erase(key);
         this->size--;
     }
